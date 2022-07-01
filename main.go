@@ -78,8 +78,8 @@ func getSteps(ctx context.Context, conf actionConfig) error {
 		}
 		for _, step := range job.Steps {
 			_, stepSpan := tracer.Start(ctx, *step.Name, trace.WithTimestamp(step.GetStartedAt().Time))
-			if *step.Conclusion != "success" {
-				stepSpan.SetStatus(codes.Error, *step.Conclusion)
+			if step.GetConclusion() != "success" {
+				stepSpan.SetStatus(codes.Error, step.GetConclusion())
 			}
 			if step.CompletedAt != nil {
 				stepSpan.End(trace.WithTimestamp(step.CompletedAt.Time))
@@ -87,8 +87,8 @@ func getSteps(ctx context.Context, conf actionConfig) error {
 				stepSpan.End()
 			}
 		}
-		if *job.Conclusion != "success" {
-			jobSpan.SetStatus(codes.Error, *job.Conclusion)
+		if job.GetConclusion() != "success" {
+			jobSpan.SetStatus(codes.Error, job.GetConclusion())
 		}
 		if job.CompletedAt != nil {
 			jobSpan.End(trace.WithTimestamp(job.CompletedAt.Time))
