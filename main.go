@@ -15,6 +15,7 @@ import (
 	"go.opentelemetry.io/collector/translator/conventions"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"go.opentelemetry.io/otel/trace"
@@ -77,11 +78,17 @@ func getSteps(ctx context.Context, conf actionConfig) error {
 		}
 		for _, step := range job.Steps {
 			_, stepSpan := tracer.Start(ctx, *step.Name, trace.WithTimestamp(step.GetStartedAt().Time))
+			if *step.Conclusion != "success" {
+				stepSpan.SetStatus(codes.Error, *step.Conclusion)
+			}
 			if step.CompletedAt != nil {
 				stepSpan.End(trace.WithTimestamp(step.CompletedAt.Time))
 			} else {
 				stepSpan.End()
 			}
+		}
+		if *job.Conclusion != "success" {
+			jobSpan.SetStatus(codes.Error, *job.Conclusion)
 		}
 		if job.CompletedAt != nil {
 			jobSpan.End(trace.WithTimestamp(job.CompletedAt.Time))
