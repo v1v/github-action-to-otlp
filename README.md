@@ -34,3 +34,26 @@ with:
   endpoint: 'grpc.otlpendpoint.io:443'
   repo-token: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+## OpenTelemetry Attributes
+
+#### SCM attributes
+
+The tool will add the following attributes to each trace:
+
+| Attribute | Description |
+| --------- | ----------- |
+| `scm.ref` | Sha commit |
+| `scm.branch` | Name of the branch where the test execution is processed |
+
+## Makefile
+
+Build the docker image with the usual
+
+    make build
+
+Publish the docker image locally to dockerhub with
+
+    VERSION=1.2.3 make publish
+
+NOTE: VERSION refers to the tag for the docker image which will be published in the registry

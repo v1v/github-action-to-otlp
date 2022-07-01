@@ -15,6 +15,7 @@ import (
 	"go.opentelemetry.io/collector/translator/conventions"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"go.opentelemetry.io/otel/trace"
@@ -57,7 +58,12 @@ func getSteps(ctx context.Context, conf actionConfig) error {
 		return err
 	}
 
-	ctx, workflowSpan := tracer.Start(ctx, *workflow.Name, trace.WithTimestamp(workflow.CreatedAt.Time))
+	scmAttributes := []attribute.KeyValue{
+		attribute.String("scm.ref", *workflow.HeadSHA),
+		attribute.String("scm.branch", *workflow.HeadBranch),
+	}
+
+	ctx, workflowSpan := tracer.Start(ctx, *workflow.Name, trace.WithAttributes(scmAttributes...), trace.WithTimestamp(workflow.CreatedAt.Time), trace.WithSpanKind(trace.SpanKindServer))
 	defer workflowSpan.End(trace.WithTimestamp(workflow.UpdatedAt.Time))
 
 	jobs, _, err := client.Actions.ListWorkflowJobs(ctx, conf.owner, conf.repo, id, &github.ListWorkflowJobsOptions{})
@@ -72,11 +78,17 @@ func getSteps(ctx context.Context, conf actionConfig) error {
 		}
 		for _, step := range job.Steps {
 			_, stepSpan := tracer.Start(ctx, *step.Name, trace.WithTimestamp(step.GetStartedAt().Time))
+			if step.GetConclusion() != "success" {
+				stepSpan.SetStatus(codes.Error, step.GetConclusion())
+			}
 			if step.CompletedAt != nil {
 				stepSpan.End(trace.WithTimestamp(step.CompletedAt.Time))
 			} else {
 				stepSpan.End()
 			}
+		}
+		if job.GetConclusion() != "success" {
+			jobSpan.SetStatus(codes.Error, job.GetConclusion())
 		}
 		if job.CompletedAt != nil {
 			jobSpan.End(trace.WithTimestamp(job.CompletedAt.Time))
