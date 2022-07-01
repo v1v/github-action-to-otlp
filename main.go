@@ -24,6 +24,7 @@ import (
 type actionConfig struct {
 	workflow         string
 	githubRepository string
+	githubToken      string
 	owner            string
 	repo             string
 	runID            string
@@ -38,12 +39,10 @@ func getSteps(ctx context.Context, conf actionConfig) error {
 	tracer := otel.Tracer(conf.githubRepository)
 	client := github.NewClient(nil)
 
-	// login using the GITHUB_TOKEN coming from the jobs
-	// as per https://docs.github.com/en/actions/security-guides/automatic-token-authentication
-	githubToken, ok := os.LookupEnv("GITHUB_TOKEN")
-	if ok {
+	// login using auth if configured
+	if len(conf.githubToken) != 0 {
 		ts := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: githubToken},
+			&oauth2.Token{AccessToken: conf.githubToken},
 		)
 		tc := oauth2.NewClient(ctx, ts)
 		client = github.NewClient(tc)
@@ -133,6 +132,12 @@ func parseConfig() (actionConfig, error) {
 		return actionConfig{}, errors.New("missing variable: GITHUB_RUN_ID")
 	}
 
+	// as per https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+	githubToken, ok := os.LookupEnv("GITHUB_TOKEN")
+	if !ok {
+		log.Print("missing variable: GITHUB_TOKEN. Will only access public repositories.")
+	}
+
 	workflowName, ok := os.LookupEnv("GITHUB_WORKFLOW")
 	if !ok {
 		return actionConfig{}, errors.New("missing variable: GITHUB_WORKFLOW")
@@ -156,6 +161,7 @@ func parseConfig() (actionConfig, error) {
 	conf := actionConfig{
 		workflow:         workflowName,
 		githubRepository: githubRepository,
+		githubToken:      githubToken,
 		owner:            parts[0],
 		repo:             parts[1],
 		runID:            runID,
