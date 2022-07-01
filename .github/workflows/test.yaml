@@ -9,6 +9,7 @@ jobs:
         uses: actions/checkout@v3
       - run: exit 1
       - name: Send data to OTLP backend
+        if: always()
         uses: v1v/github-action-to-otlp@v2
         with:
           endpoint: "${{ secrets.APM_SERVER }}"
