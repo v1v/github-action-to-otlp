@@ -35,6 +35,17 @@ with:
   repo-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+## OpenTelemetry Attributes
+
+#### SCM attributes
+
+The tool will add the following attributes to each trace:
+
+| Attribute | Description |
+| --------- | ----------- |
+| `scm.ref` | Sha commit |
+| `scm.branch` | Name of the branch where the test execution is processed |
+
 ## Makefile
 
 Build the docker image with the usual

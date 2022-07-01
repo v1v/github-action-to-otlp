@@ -57,7 +57,12 @@ func getSteps(ctx context.Context, conf actionConfig) error {
 		return err
 	}
 
-	ctx, workflowSpan := tracer.Start(ctx, *workflow.Name, trace.WithTimestamp(workflow.CreatedAt.Time), trace.WithSpanKind(trace.SpanKindServer))
+	scmAttributes := []attribute.KeyValue{
+		attribute.String("scm.ref", *workflow.HeadSHA),
+		attribute.String("scm.branch", *workflow.HeadBranch),
+	}
+
+	ctx, workflowSpan := tracer.Start(ctx, *workflow.Name, trace.WithAttributes(scmAttributes...), trace.WithTimestamp(workflow.CreatedAt.Time), trace.WithSpanKind(trace.SpanKindServer))
 	defer workflowSpan.End(trace.WithTimestamp(workflow.UpdatedAt.Time))
 
 	jobs, _, err := client.Actions.ListWorkflowJobs(ctx, conf.owner, conf.repo, id, &github.ListWorkflowJobsOptions{})
