@@ -3,14 +3,13 @@ on: [push]
 jobs:
   test-otlp-output:
     runs-on: ubuntu-latest
-    name: A job to test OTLP output
+    name: Generate distributed traces
     steps:
-      # To use this repository's private action,
-      # you must check out the repository
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Send data to OTLP backend
-        uses: codeboten/github-action-to-otlp@v1
+        uses: v1v/github-action-to-otlp@v2
         with:
-          endpoint: "ingest.lightstep.com:443"
-          headers: "lightstep-access-token=${{ secrets.ACCESS_TOKEN }}"
+          endpoint: "${{ secrets.APM_SERVER }}"
+          headers: "Authorization=Bearer ${{ secrets.APM_TOKEN }}"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
